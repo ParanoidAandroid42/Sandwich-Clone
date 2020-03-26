@@ -12,6 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f994222180c5b54c8d97a83ce25a4fd, type: 3}
   m_Name: Cheese
   m_EditorClassIdentifier: 
-  name: 4
+  foodName: 4
   metarial: {fileID: 2100000, guid: b18a4d5c097eaf149a307386c297a576, type: 2}
-  gridPoints: []

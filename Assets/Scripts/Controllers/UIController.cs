@@ -21,7 +21,6 @@ namespace Controller
 
         private void InitProperties()
         {
-          //  levelInformation.text = "Level " + _levelCount; 
             InitEvents();
         }
 
@@ -31,6 +30,7 @@ namespace Controller
             Managers.EventManager.StartListening(Managers.EventManager.Listener.StartGame.ToString(), StartGame);
             retryButton.onClick.AddListener(() => Retry());
             pauseButton.onClick.AddListener(() => PauseGame());
+            pauseButton.gameObject.SetActive(false);
             skipButton.onClick.AddListener(() => Skip());
             undoButton.onClick.AddListener(() => Undo());
         }
@@ -47,7 +47,7 @@ namespace Controller
 
         void GameOver(System.Object success)
         {
-
+            //game over configuration
         }
 
         void NextGeneretePuzzle(System.Object levelCount)

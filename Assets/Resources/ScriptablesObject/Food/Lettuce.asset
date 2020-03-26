@@ -12,6 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f994222180c5b54c8d97a83ce25a4fd, type: 3}
   m_Name: Lettuce
   m_EditorClassIdentifier: 
-  name: 3
+  foodName: 3
   metarial: {fileID: 2100000, guid: 39a984ce7e6c69b43a3daff972613ebe, type: 2}
-  gridPoints: []

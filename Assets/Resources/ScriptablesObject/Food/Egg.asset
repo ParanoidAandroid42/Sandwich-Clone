@@ -12,6 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f994222180c5b54c8d97a83ce25a4fd, type: 3}
   m_Name: Egg
   m_EditorClassIdentifier: 
-  name: 1
+  foodName: 1
   metarial: {fileID: 2100000, guid: 90d79e0338ec4974da2e874364f316d5, type: 2}
-  gridPoints: []

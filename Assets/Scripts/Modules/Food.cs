@@ -14,6 +14,6 @@ public class Food : ScriptableObject
         Cheese
     }
 
-    public FoodNames name;
+    public FoodNames foodName;
     public Material metarial;
 }

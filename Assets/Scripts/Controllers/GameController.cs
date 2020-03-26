@@ -7,9 +7,8 @@ namespace Controllers
 {
     public class MoveObject
     {
-        public Vector2 to;
-        public Vector2 from;
         public FoodController food;
+        //belki başka parametreler de eklenir,kalsın
     }
 
     public class GameController : MonoBehaviour
@@ -18,7 +17,6 @@ namespace Controllers
 
         private int _levelCount = 0;
         private List<FoodController> _foods;
-        private List<FoodController> _fakeFoods;
 
         private Dictionary<Vector2, FoodController> _gridElements = new Dictionary<Vector2, FoodController>();
         private List<MoveObject> _moveList;
@@ -64,7 +62,6 @@ namespace Controllers
             {
                 BlockGame(true);
                 MoveObject mO = _moveList[_moveList.Count - 1];
-                _fakeFoods.Add(mO.food);
                 mO.food.UndoMove();
                 Vector2 sP = mO.food.StartMatrix;
                 _gridElements[sP].sandwiched = false;
@@ -132,7 +129,6 @@ namespace Controllers
             _gridElements = new Dictionary<Vector2, FoodController>();
             _bread = new List<FoodController>();
             _foods = new List<FoodController>();
-            _fakeFoods = new List<FoodController>();
 
             if (_levelCount < FakeMapConfig.mapCOnfig.Length)
             {
@@ -146,12 +142,11 @@ namespace Controllers
                     FoodController fC = currentEntity.GetComponent<FoodController>();
                     fC.StartMatrix = mC.foodConfigs[i].startMatrix;
                     _gridElements[mC.foodConfigs[i].startMatrix] = fC;
-                    if (fC.food.name == Food.FoodNames.Bread)
+                    if (fC.food.foodName == Food.FoodNames.Bread)
                     {
                         _bread.Add(fC);
                     }
                     _foods.Add(fC);
-                    _fakeFoods.Add(fC);
                 }
                 _levelCount++;
             }
@@ -176,33 +171,28 @@ namespace Controllers
             }
         }
 
-        private void CheckNextMove(System.Object foodController)
+        private void CheckNextMove(System.Object moveListElement)
         {
-            MoveObject mO = new MoveObject();
+            MoveObject mE = (MoveObject)moveListElement;
             BlockGame(false);
-            FoodController fC = ((FoodController)foodController);
-            mO.food = fC;
-            Vector2 sP = fC.StartMatrix;
-            _moveList.Add(mO);
-            _fakeFoods.Remove(fC);
+            Vector2 sP = mE.food.StartMatrix;
+            _moveList.Add(mE);
 
             _gridElements[sP].sandwiched = true;
-
-            Debug.LogError(_fakeFoods.Count);
-            if (_fakeFoods.Count == 1)
-            {
-                Debug.LogError("Success");
-                GenereteNextPuzzle();
-                return;
-            }
 
             bool closedSandwich = IsClosedSandwich();
             if (closedSandwich)
             {
+                bool isFinished = IsFinishedSandwich();
+                if (isFinished)
+                {
+                    Debug.LogError("Success");
+                    GenereteNextPuzzle();
+                    return;
+                }
                 BlockGame(true);
                 eventSystem.SetActive(true);
                 Debug.LogError("ekmek sandwich oldu,hamle kalmadı");
-                return;
             }
 
             CalculateNeighborhoods();
@@ -212,13 +202,25 @@ namespace Controllers
                 bool empty = _foods[i].IsNeighborhoodsEmpty();
                 if (empty)
                 {
-                    //hamle kalmadı undo yap
                     BlockGame(true);
                     eventSystem.SetActive(true);
                     Debug.LogError("hamle kalmadı");
                     return;
                 }
             }
+        }
+
+        private bool IsFinishedSandwich()
+        {
+            int sandwich = 0;
+            for(int i = 0; i<_foods.Count; i++)
+            {
+                if (_foods[i].sandwiched == false)
+                    sandwich++;
+                if (sandwich > 1)
+                    return false;
+            }
+            return true;
         }
 
         private bool IsClosedSandwich()

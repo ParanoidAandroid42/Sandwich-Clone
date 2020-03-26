@@ -40,57 +40,82 @@ public class FoodController : MonoBehaviour
         gameObject.name = name.ToString();
         _startMatrix = matrix;
         _currentMatrix = _startMatrix;
-        gameObject.transform.position = new Vector3(_scale.x * matrix.x -2, -_scale.y * matrix.y +2,_scale.z); // bu grid sistemine bağlansa iyi olur.pozisyon için
+        gameObject.transform.localScale = _scale;
+        gameObject.transform.position = new Vector3(_scale.x * matrix.x -2, -_scale.y * matrix.y +2,0); // bu grid sistemine bağlansa iyi olur.pozisyon için
     }
 
     public void Move()
     {
-        Debug.LogError(gameObject);
         if (_neighborhoods.ContainsKey(_moveDirection))
         {
             FoodController nFC = _neighborhoods[_moveDirection];
             Vector3 position = _neighborhoods[_moveDirection].transform.position;
-            Vector3 rotation = new Vector3(0, 0, 0);
-            switch (_moveDirection)
-            {
-                case Direction.Left:
-                    rotation = new Vector3(0, 180, 0);
-                    break;
-                case Direction.Down:
-                    rotation = new Vector3(-180, 0, 0);
-                    break;
-                case Direction.Right:
-                    rotation = new Vector3(0, -180, 0);
-                    break;
-                case Direction.Up:
-                    rotation = new Vector3(180, 0, 0);
-                    break;
-                case Direction.None:
-                    break;
-            }
+            Vector3 rotation = GetDirectionRotation(_moveDirection);
 
+            Controllers.MoveObject mO = new Controllers.MoveObject();
             _currentMatrix = nFC.StartMatrix;
             GameObject targetObject = gameObject;
-            position = new Vector3(position.x, position.y, position.z - _scale.z);
             Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.MoveStart.ToString());
+            float z = -_scale.z;
+            while (targetObject.transform.parent != null)
+            {
+                targetObject = targetObject.transform.parent.gameObject;
+                z -= _scale.z;
+            }
+            mO.food = targetObject.GetComponent<FoodController>();
+            position = new Vector3(position.x, position.y, z);
 
-            targetObject = (transform.parent != null) ? transform.parent.gameObject : gameObject;
+            GameObject pO = nFC.gameObject;
+            while (pO.transform.childCount != 0)
+            {
+                pO = pO.transform.GetChild(0).gameObject;
+            }
+
             targetObject.transform.DORotate(rotation, 1, RotateMode.LocalAxisAdd);
             targetObject.transform.DOMove(position, 1).OnComplete(() =>
             {
-                targetObject.transform.parent = nFC.transform;
+                targetObject.transform.parent = pO.transform;
                 for (int i = 0; i < nFC.transform.childCount; i++)
                 {
                     nFC.transform.GetChild(i).GetComponent<FoodController>().CurrentMatrix = nFC.StartMatrix;
+                    nFC.transform.GetChild(i).GetComponent<FoodController>().sandwiched = true;
                 }
+                Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.CheckNextMove.ToString(), mO);
                 Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.MoveDone.ToString());
-                Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.CheckNextMove.ToString(), this);
             });
         }
         else
         {
             Debug.LogError("O tarafta komşu yok");
         }
+    }
+
+    public Vector3 GetDirectionRotation(Direction moveDirection)
+    {
+        Vector3 rotation = new Vector3(0, 0, 0);
+        switch (moveDirection)
+        {
+            case Direction.Left:
+                rotation = new Vector3(0, 180, 0);
+                break;
+            case Direction.Down:
+                rotation = new Vector3(-180, 0, 0);
+                break;
+            case Direction.Right:
+                rotation = new Vector3(0, -180, 0);
+                break;
+            case Direction.Up:
+                rotation = new Vector3(180, 0, 0);
+                break;
+            case Direction.None:
+                break;
+        }
+        return rotation;
+    }
+
+    public void SetOrder()
+    {
+
     }
 
     public void OnMouseUp()
@@ -117,33 +142,22 @@ public class FoodController : MonoBehaviour
 
     public void UndoMove()
     {
-        Vector3 position = new Vector3(_scale.x * _startMatrix.x - 2, -_scale.y * _startMatrix.y + 2, _scale.z);
-        Vector3 rotation = new Vector3(0, 0, 0);
-        switch (_moveDirection)
-        {
-            case Direction.Left:
-                rotation = new Vector3(0, -180, 0);
-                break;
-            case Direction.Down:
-                rotation = new Vector3(180, 0, 0);
-                break;
-            case Direction.Right:
-                rotation = new Vector3(0, 180, 0);
-                break;
-            case Direction.Up:
-                rotation = new Vector3(-180, 0, 0);
-                break;
-            case Direction.None:
-                break;
-        }
-
-        transform.DORotate(rotation, 1, RotateMode.LocalAxisAdd).OnComplete(()=>
+        FoodController fC= gameObject.GetComponent<FoodController>();
+        Vector2 startPosition = new Vector3(_scale.x * fC.StartMatrix.x - 2, -_scale.y * fC.StartMatrix.y + 2, 0);
+        Vector3 rotation = GetDirectionRotation(fC.MoveDirection);
+        gameObject.transform.DORotate(rotation, 1, RotateMode.LocalAxisAdd).OnComplete(() =>
         {
             Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.MoveDone.ToString());
-        }); // buradaki 1 sayısı dinamic olmalı
-        transform.parent = transform.parent.parent;
-        transform.DOMove(position, 1);
-        _currentMatrix = _startMatrix;
+        });
+        GameObject targetObject = gameObject;
+
+        while (targetObject.transform.parent != null)
+        {
+            targetObject = targetObject.transform.parent.gameObject;
+        }
+        gameObject.transform.parent = targetObject.transform.parent;
+        gameObject.transform.DOMove(startPosition, 1);
+        fC.CurrentMatrix = fC.StartMatrix;
     }
 
     public void OnMouseDown()
@@ -170,6 +184,12 @@ public class FoodController : MonoBehaviour
     {
         set { _currentMatrix = value; }  // set method
         get { return _currentMatrix; }   // get method
+    }
+
+    public Direction MoveDirection
+    {
+        get { return _moveDirection; }   // get method
+        set { _moveDirection = value; }// set method
     }
 
     public Vector2 StartMatrix
