@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class FakeMapConfig
 {
-
     public static IMapConfig[] mapCOnfig = new IMapConfig[] {
         new IMapConfig
         {

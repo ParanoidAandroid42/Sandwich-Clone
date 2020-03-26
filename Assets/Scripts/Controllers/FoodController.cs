@@ -57,8 +57,9 @@ public class FoodController : MonoBehaviour
             topCount += count;
             (int count2, GameObject parentObject) = GetMultipleChildValue(nFC.gameObject);
             topCount += count2;
-            Debug.LogError(targetObject);
-            Debug.LogError(parentObject);
+            (int count3, GameObject childobject) = GetMultipleChildValue(gameObject);
+            topCount += count3;
+            
             FoodController fCList = targetObject.GetComponent<FoodController>();
             z = -((topCount +1) * _scale.z); 
             position = new Vector3(position.x, position.y, z);
