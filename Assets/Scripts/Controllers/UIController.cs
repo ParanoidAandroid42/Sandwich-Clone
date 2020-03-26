@@ -12,8 +12,19 @@ namespace Controller
         public Button skipButton;
         public Button undoButton;
         public Button turnMainButton;
+        public Button okButton;
+        public Text informationText;
+        public GameObject infoPopupContainer;
 
         public Text levelInformation;
+
+        public enum Information
+        {
+            LevelsFinished,
+            LevelSuccess,
+            NoMoreMoves,
+            NoMoreUndo
+        }
 
         void Awake()
         {
@@ -29,14 +40,46 @@ namespace Controller
         {
             Managers.EventManager.StartListening(Managers.EventManager.Listener.NextGeneretePuzzle.ToString(), NextGeneretePuzzle);
             Managers.EventManager.StartListening(Managers.EventManager.Listener.StartGame.ToString(), StartGame);
+            Managers.EventManager.StartListening(Managers.EventManager.Listener.SendMessage.ToString(), SendMessage);
             Managers.EventManager.StartListening(Managers.EventManager.Listener.GameOver.ToString(), GameOver);
             retryButton.onClick.AddListener(() => Retry());
+            okButton.onClick.AddListener(() => PopupContainerVisible(false));
             turnMainButton.onClick.AddListener(() => TurnMain());
             pauseButton.onClick.AddListener(() => PauseGame());
             skipButton.onClick.AddListener(() => Skip());
             undoButton.onClick.AddListener(() => Undo());
             turnMainButton.gameObject.SetActive(false);
             pauseButton.gameObject.SetActive(false);
+            infoPopupContainer.SetActive(false);
+        }
+
+        void PopupContainerVisible(bool active)
+        {
+            infoPopupContainer.SetActive(active);
+        }
+
+        void SendMessage(System.Object message = null)
+        {
+            Information info = (Information)message;
+            string m = "";
+            switch (info)
+            {
+                case Information.LevelsFinished:
+                    m = "Başka bölüm yok bitti";
+                    break;
+                case Information.LevelSuccess:
+                    m = "Bir sonraki bölüme geçtin";
+                    break;
+                case Information.NoMoreMoves:
+                    m = "ekmek sandwich oldu,hamle kalmadı";
+                    break;
+                case Information.NoMoreUndo:
+                    m = "Undo yapacak hamle yok";
+                    break;
+            }
+            informationText.text = m;
+            PopupContainerVisible(true);
+            //belki buraya animasyon vs eklenir.
         }
 
         void TurnMain()

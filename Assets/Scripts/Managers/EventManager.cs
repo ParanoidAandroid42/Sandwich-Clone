@@ -20,7 +20,8 @@ namespace Managers
             MoveDone,
             MoveStart,
             TurnMain,
-            GameOver
+            GameOver,
+            SendMessage
         }
 
         [System.Serializable]

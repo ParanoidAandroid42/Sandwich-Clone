@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace Controllers
+namespace Controller
 {
     public class GameController : MonoBehaviour
     {
@@ -73,9 +73,10 @@ namespace Controllers
             }
             else
             {
+                if(_startGame == true)
+                Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.SendMessage.ToString(),UIController.Information.NoMoreUndo);
                 _startGame = true;
                 _freezeGame = false;
-                Debug.Log("Undo yapacak hamle yok");
             }
         }
 
@@ -165,7 +166,7 @@ namespace Controllers
                 BlockElements(true);
                 BlockUI(false);
                 Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.GameOver.ToString());
-                Debug.Log("Başka bölüm yok bitti");
+                Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.SendMessage.ToString(), UIController.Information.LevelsFinished);
             }
         }
 
@@ -196,14 +197,14 @@ namespace Controllers
                 bool isFinished = IsFinishedSandwich();
                 if (isFinished)
                 {
-                    Debug.Log("Success");
+                    Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.SendMessage.ToString(), UIController.Information.LevelSuccess);
                     GenereteNextPuzzle();
                     return;
                 }
                 _freezeGame = true;
                 BlockUI(false);
                 BlockElements(true);
-                Debug.Log("ekmek sandwich oldu,hamle kalmadı");
+                Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.SendMessage.ToString(), UIController.Information.NoMoreMoves);
                 return;
             }
 
