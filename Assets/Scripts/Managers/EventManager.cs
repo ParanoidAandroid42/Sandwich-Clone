@@ -7,7 +7,7 @@ namespace Managers
 {
     public class EventManager : MonoBehaviour
     {
-        //listener for game actions
+        //listener for game actions - bu kısım dışarıdan gelebilir.
         public enum Listener
         {
             StartGame,
@@ -18,7 +18,9 @@ namespace Managers
             NextGeneretePuzzle,
             CheckNextMove,
             MoveDone,
-            MoveStart
+            MoveStart,
+            TurnMain,
+            GameOver
         }
 
         [System.Serializable]

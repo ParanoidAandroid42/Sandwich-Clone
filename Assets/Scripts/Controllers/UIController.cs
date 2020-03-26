@@ -11,6 +11,7 @@ namespace Controller
         public Button pauseButton;
         public Button skipButton;
         public Button undoButton;
+        public Button turnMainButton;
 
         public Text levelInformation;
 
@@ -28,11 +29,20 @@ namespace Controller
         {
             Managers.EventManager.StartListening(Managers.EventManager.Listener.NextGeneretePuzzle.ToString(), NextGeneretePuzzle);
             Managers.EventManager.StartListening(Managers.EventManager.Listener.StartGame.ToString(), StartGame);
+            Managers.EventManager.StartListening(Managers.EventManager.Listener.GameOver.ToString(), GameOver);
             retryButton.onClick.AddListener(() => Retry());
+            turnMainButton.onClick.AddListener(() => TurnMain());
             pauseButton.onClick.AddListener(() => PauseGame());
-            pauseButton.gameObject.SetActive(false);
             skipButton.onClick.AddListener(() => Skip());
             undoButton.onClick.AddListener(() => Undo());
+            turnMainButton.gameObject.SetActive(false);
+            pauseButton.gameObject.SetActive(false);
+        }
+
+        void TurnMain()
+        {
+            turnMainButton.gameObject.SetActive(false);
+            Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.TurnMain.ToString());
         }
 
         void StartGame(System.Object levelCount)
@@ -45,8 +55,9 @@ namespace Controller
             levelInformation.text = "LEVEL " + levelCount;
         }
 
-        void GameOver(System.Object success)
+        void GameOver(System.Object arg = null)
         {
+            turnMainButton.gameObject.SetActive(true);
             //game over configuration
         }
 

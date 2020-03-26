@@ -28,11 +28,7 @@ public class FoodController : MonoBehaviour
 
     public bool sandwiched = false;
 
-    public void Start()
-    {
-    }
-
-    public void ChangeFoodType(Food.FoodNames name,Vector2 matrix)
+    public void ChangeFoodType(Food.FoodNames name,Vector2 matrix,int row,int coloumn)
     {
         Food f = Resources.Load<Food>("ScriptablesObject/Food/" + name);
         food = f;
@@ -48,74 +44,96 @@ public class FoodController : MonoBehaviour
     {
         if (_neighborhoods.ContainsKey(_moveDirection))
         {
-            FoodController nFC = _neighborhoods[_moveDirection];
-            Vector3 position = _neighborhoods[_moveDirection].transform.position;
-            Vector3 rotation = GetDirectionRotation(_moveDirection);
-
-            Controllers.MoveObject mO = new Controllers.MoveObject();
-            _currentMatrix = nFC.StartMatrix;
-            GameObject targetObject = gameObject;
+            int topCount = 0;
+            float z = 0;
             Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.MoveStart.ToString());
-            float z = -_scale.z;
-            while (targetObject.transform.parent != null)
-            {
-                targetObject = targetObject.transform.parent.gameObject;
-                z -= _scale.z;
-            }
-            mO.food = targetObject.GetComponent<FoodController>();
-            position = new Vector3(position.x, position.y, z);
 
-            GameObject pO = nFC.gameObject;
-            while (pO.transform.childCount != 0)
-            {
-                pO = pO.transform.GetChild(0).gameObject;
-            }
+            Vector3 position = _neighborhoods[_moveDirection].transform.position;
+            Vector3 rotation = GetDirectionRotation(_moveDirection,false);
+
+            FoodController nFC = _neighborhoods[_moveDirection];
+            _currentMatrix = nFC.StartMatrix;
+            (int count, GameObject targetObject) = GetMultipleParentValue(gameObject);
+            topCount += count;
+            (int count2, GameObject parentObject) = GetMultipleChildValue(nFC.gameObject);
+            topCount += count2;
+            Debug.LogError(targetObject);
+            Debug.LogError(parentObject);
+            FoodController fCList = targetObject.GetComponent<FoodController>();
+            z = -((topCount +1) * _scale.z); 
+            position = new Vector3(position.x, position.y, z);
 
             targetObject.transform.DORotate(rotation, 1, RotateMode.LocalAxisAdd);
             targetObject.transform.DOMove(position, 1).OnComplete(() =>
             {
-                targetObject.transform.parent = pO.transform;
+                targetObject.transform.parent = parentObject.transform;
                 for (int i = 0; i < nFC.transform.childCount; i++)
                 {
-                    nFC.transform.GetChild(i).GetComponent<FoodController>().CurrentMatrix = nFC.StartMatrix;
-                    nFC.transform.GetChild(i).GetComponent<FoodController>().sandwiched = true;
+                    FoodController fC = nFC.transform.GetChild(i).GetComponent<FoodController>();
+                    fC.CurrentMatrix = nFC.StartMatrix;
+                    fC.sandwiched = true;
                 }
-                Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.CheckNextMove.ToString(), mO);
+                Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.CheckNextMove.ToString(), fCList);
                 Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.MoveDone.ToString());
             });
         }
         else
         {
-            Debug.LogError("O tarafta komşu yok");
+            Debug.Log("O tarafta komşu yok");
         }
     }
 
-    public Vector3 GetDirectionRotation(Direction moveDirection)
+    (int, GameObject) GetMultipleParentValue(GameObject targetObject)
+    {
+        int parentCount = 0;
+        while (targetObject.transform.parent != null)
+        {
+            targetObject = targetObject.transform.parent.gameObject;
+            parentCount++;
+        }
+        return (parentCount, targetObject);
+    }
+
+    (int, GameObject) GetMultipleChildValue(GameObject targetObject)
+    {
+        int childCount = 0;
+        while (targetObject.transform.childCount != 0)
+        {
+            targetObject = targetObject.transform.GetChild(0).gameObject;
+            childCount++;
+        }
+        return (childCount, targetObject);
+    }
+
+    public Vector3 GetDirectionRotation(Direction moveDirection,bool reverse)
     {
         Vector3 rotation = new Vector3(0, 0, 0);
         switch (moveDirection)
         {
             case Direction.Left:
                 rotation = new Vector3(0, 180, 0);
+                if (reverse)
+                    rotation = new Vector3(0, -180, 0);
                 break;
             case Direction.Down:
                 rotation = new Vector3(-180, 0, 0);
+                if (reverse)
+                    rotation = new Vector3(180, 0, 0);
                 break;
             case Direction.Right:
                 rotation = new Vector3(0, -180, 0);
+                if (reverse)
+                    rotation = new Vector3(0, 180, 0);
                 break;
             case Direction.Up:
-                rotation = new Vector3(180, 0, 0);
+                rotation = new Vector3(180, 0, 0); 
+                if (reverse)
+                    rotation = new Vector3(-180, 0, 0);
                 break;
             case Direction.None:
                 break;
         }
         return rotation;
-    }
-
-    public void SetOrder()
-    {
-
     }
 
     public void OnMouseUp()
@@ -142,22 +160,17 @@ public class FoodController : MonoBehaviour
 
     public void UndoMove()
     {
-        FoodController fC= gameObject.GetComponent<FoodController>();
-        Vector2 startPosition = new Vector3(_scale.x * fC.StartMatrix.x - 2, -_scale.y * fC.StartMatrix.y + 2, 0);
-        Vector3 rotation = GetDirectionRotation(fC.MoveDirection);
+        Vector2 startPosition = new Vector3(_scale.x * _startMatrix.x - 2, -_scale.y * _startMatrix.y + 2, 0);
+        Vector3 rotation = GetDirectionRotation(_moveDirection, true);
+        (int count,GameObject targetObject) = GetMultipleParentValue(gameObject);
+        gameObject.transform.parent = targetObject.transform.parent;
+        gameObject.transform.DOMove(startPosition, 1);
+        _currentMatrix = _startMatrix;
+        sandwiched = false;
         gameObject.transform.DORotate(rotation, 1, RotateMode.LocalAxisAdd).OnComplete(() =>
         {
             Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.MoveDone.ToString());
         });
-        GameObject targetObject = gameObject;
-
-        while (targetObject.transform.parent != null)
-        {
-            targetObject = targetObject.transform.parent.gameObject;
-        }
-        gameObject.transform.parent = targetObject.transform.parent;
-        gameObject.transform.DOMove(startPosition, 1);
-        fC.CurrentMatrix = fC.StartMatrix;
     }
 
     public void OnMouseDown()

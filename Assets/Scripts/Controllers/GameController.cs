@@ -5,12 +5,6 @@ using UnityEngine.Events;
 
 namespace Controllers
 {
-    public class MoveObject
-    {
-        public FoodController food;
-        //belki başka parametreler de eklenir,kalsın
-    }
-
     public class GameController : MonoBehaviour
     {
         public GameObject eventSystem;
@@ -19,12 +13,12 @@ namespace Controllers
         private List<FoodController> _foods;
 
         private Dictionary<Vector2, FoodController> _gridElements = new Dictionary<Vector2, FoodController>();
-        private List<MoveObject> _moveList;
+        private List<FoodController> _moveList;
         private List<FoodController> _bread;
 
         private bool _success;
-        private bool _waitGame;
         private bool _startGame;
+        private bool _freezeGame;
 
         void Start()
         {
@@ -33,8 +27,8 @@ namespace Controllers
 
         private void InitProperties()
         {
-            _waitGame = false;
             _startGame = false;
+            _freezeGame = false;
             StartGame();
             InitEvents();
         }
@@ -42,11 +36,18 @@ namespace Controllers
         private void InitEvents()
         {
             Managers.EventManager.StartListening(Managers.EventManager.Listener.Skip.ToString(), Skip);
+            Managers.EventManager.StartListening(Managers.EventManager.Listener.TurnMain.ToString(), TurnMain);
             Managers.EventManager.StartListening(Managers.EventManager.Listener.MoveStart.ToString(), MoveStart);
             Managers.EventManager.StartListening(Managers.EventManager.Listener.MoveDone.ToString(), MoveDone);
             Managers.EventManager.StartListening(Managers.EventManager.Listener.Undo.ToString(), Undo);
             Managers.EventManager.StartListening(Managers.EventManager.Listener.RestartGame.ToString(), RestartGame);
             Managers.EventManager.StartListening(Managers.EventManager.Listener.CheckNextMove.ToString(), CheckNextMove);
+        }
+
+        void TurnMain(System.Object arg = null)
+        {
+            _levelCount = 0;
+            StartGame();
         }
 
         void StartGame()
@@ -61,49 +62,58 @@ namespace Controllers
             if (_moveList.Count >= 1)
             {
                 BlockGame(true);
-                MoveObject mO = _moveList[_moveList.Count - 1];
-                mO.food.UndoMove();
-                Vector2 sP = mO.food.StartMatrix;
+                FoodController fC = _moveList[_moveList.Count - 1];
+                fC.UndoMove();
+                _freezeGame = false;
+                Vector2 sP = fC.StartMatrix;
                 _gridElements[sP].sandwiched = false;
                 _gridElements[sP].CurrentMatrix = sP;
-                mO.food.CurrentMatrix = sP;
-                mO.food.gameObject.SetActive(true);
-                _moveList.Remove(mO);
+                _moveList.Remove(fC);
                 CalculateNeighborhoods();
             }
             else
             {
                 _startGame = true;
-                Debug.LogError("Undo yapacak hamle yok");
+                _freezeGame = false;
+                Debug.Log("Undo yapacak hamle yok");
             }
         }
 
         void BlockGame(bool value)
         {
-            _waitGame = value;
-            eventSystem.SetActive(!value);
-            for(int i = 0; i<_foods.Count; i++)
+            BlockUI(value);
+            BlockElements(value);
+        }
+
+        void BlockUI(bool block)
+        {
+            eventSystem.SetActive(!block);
+        }
+
+        void BlockElements(bool block)
+        {
+            for (int i = 0; i < _foods.Count; i++)
             {
-                _foods[i].gameObject.GetComponent<BoxCollider>().enabled = !value;
+                _foods[i].gameObject.GetComponent<BoxCollider>().enabled = !block;
             }
         }
 
         void Skip(System.Object arg)
         {
-            DestroyPreviousElement();
+            DestroyPreviousElements();
             GenereteNextPuzzle();
         }
 
         void RestartGame(System.Object arg = null)
         {
-            //some argumentler eklenebilir
             _startGame = false;
             Undo();
         }
 
         private void MoveDone(System.Object arg = null)
         {
-            BlockGame(false);
+            if(!_freezeGame)
+                BlockGame(false);
             if (_startGame == false)
             {
                 RestartGame();
@@ -117,8 +127,8 @@ namespace Controllers
 
         void GenereteNextPuzzle()
         {
-            _moveList = new List<MoveObject>();
-            DestroyPreviousElement();
+            _moveList = new List<FoodController>();
+            DestroyPreviousElements();
             CreateFoods();
             CalculateNeighborhoods();
             Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.NextGeneretePuzzle.ToString(), _levelCount);
@@ -138,7 +148,7 @@ namespace Controllers
                 {
                     GameObject food = Resources.Load<GameObject>("Prefabs/Food");
                     GameObject currentEntity = Instantiate(food, new Vector3(0, 0, 0), Quaternion.identity);
-                    currentEntity.GetComponent<FoodController>().ChangeFoodType(mC.foodConfigs[i].name, mC.foodConfigs[i].startMatrix);
+                    currentEntity.GetComponent<FoodController>().ChangeFoodType(mC.foodConfigs[i].name, mC.foodConfigs[i].startMatrix, mC.row, mC.coloumn);
                     FoodController fC = currentEntity.GetComponent<FoodController>();
                     fC.StartMatrix = mC.foodConfigs[i].startMatrix;
                     _gridElements[mC.foodConfigs[i].startMatrix] = fC;
@@ -152,13 +162,14 @@ namespace Controllers
             }
             else
             {
-                BlockGame(true);
-                eventSystem.SetActive(true);
-                Debug.LogError("Başka bölüm yok bitti");
+                BlockElements(true);
+                BlockUI(false);
+                Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.GameOver.ToString());
+                Debug.Log("Başka bölüm yok bitti");
             }
         }
 
-        private void DestroyPreviousElement()
+        private void DestroyPreviousElements()
         {
             if (_foods != null)
             {
@@ -171,13 +182,12 @@ namespace Controllers
             }
         }
 
-        private void CheckNextMove(System.Object moveListElement)
+        private void CheckNextMove(System.Object foodController)
         {
-            MoveObject mE = (MoveObject)moveListElement;
+            FoodController fC = (FoodController)foodController;
             BlockGame(false);
-            Vector2 sP = mE.food.StartMatrix;
-            _moveList.Add(mE);
-
+            Vector2 sP = fC.StartMatrix;
+            _moveList.Add(fC);
             _gridElements[sP].sandwiched = true;
 
             bool closedSandwich = IsClosedSandwich();
@@ -186,13 +196,15 @@ namespace Controllers
                 bool isFinished = IsFinishedSandwich();
                 if (isFinished)
                 {
-                    Debug.LogError("Success");
+                    Debug.Log("Success");
                     GenereteNextPuzzle();
                     return;
                 }
-                BlockGame(true);
-                eventSystem.SetActive(true);
-                Debug.LogError("ekmek sandwich oldu,hamle kalmadı");
+                _freezeGame = true;
+                BlockUI(false);
+                BlockElements(true);
+                Debug.Log("ekmek sandwich oldu,hamle kalmadı");
+                return;
             }
 
             CalculateNeighborhoods();
@@ -202,9 +214,10 @@ namespace Controllers
                 bool empty = _foods[i].IsNeighborhoodsEmpty();
                 if (empty)
                 {
-                    BlockGame(true);
-                    eventSystem.SetActive(true);
-                    Debug.LogError("hamle kalmadı");
+                    BlockElements(true);
+                    BlockUI(false);
+                    _freezeGame = true;
+                    Debug.Log("hamle kalmadı");
                     return;
                 }
             }
@@ -215,10 +228,10 @@ namespace Controllers
             int sandwich = 0;
             for(int i = 0; i<_foods.Count; i++)
             {
-                if (_foods[i].sandwiched == false)
+                if (_foods[i].sandwiched == false) 
                     sandwich++;
                 if (sandwich > 1)
-                    return false;
+                    return false;//salt bi tane sandwich olmamış nesne kalması lazım
             }
             return true;
         }
