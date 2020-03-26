@@ -208,19 +208,6 @@ namespace Controllers
             }
 
             CalculateNeighborhoods();
-
-            for (int i = 0; i < _foods.Count; i++)
-            {
-                bool empty = _foods[i].IsNeighborhoodsEmpty();
-                if (empty)
-                {
-                    BlockElements(true);
-                    BlockUI(false);
-                    _freezeGame = true;
-                    Debug.Log("hamle kalmadı");
-                    return;
-                }
-            }
         }
 
         private bool IsFinishedSandwich()

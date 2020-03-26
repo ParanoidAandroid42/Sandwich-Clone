@@ -52,7 +52,6 @@ public class FoodController : MonoBehaviour
             Vector3 rotation = GetDirectionRotation(_moveDirection,false);
 
             FoodController nFC = _neighborhoods[_moveDirection];
-            _currentMatrix = nFC.StartMatrix;
             (int count, GameObject targetObject) = GetMultipleParentValue(gameObject);
             topCount += count;
             (int count2, GameObject parentObject) = GetMultipleChildValue(nFC.gameObject);
@@ -68,11 +67,10 @@ public class FoodController : MonoBehaviour
             targetObject.transform.DOMove(position, 1).OnComplete(() =>
             {
                 targetObject.transform.parent = parentObject.transform;
-                for (int i = 0; i < nFC.transform.childCount; i++)
+                for (int i = 0; i < parentObject.transform.childCount; i++)
                 {
-                    FoodController fC = nFC.transform.GetChild(i).GetComponent<FoodController>();
+                    FoodController fC = parentObject.transform.GetChild(i).GetComponent<FoodController>();
                     fC.CurrentMatrix = nFC.StartMatrix;
-                    fC.sandwiched = true;
                 }
                 Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.CheckNextMove.ToString(), fCList);
                 Managers.EventManager.TriggerEvent(Managers.EventManager.Listener.MoveDone.ToString());
